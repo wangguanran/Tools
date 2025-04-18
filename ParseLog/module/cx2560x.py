@@ -447,6 +447,75 @@ def parse_reg07(value):
         print(f"解析寄存器07值时出错: {e}")
         return None
 
+def parse_reg08(value):
+    """解析cx2560x的08寄存器值"""
+    try:
+        value = int(value, 16)  # 将16进制字符串转换为整数
+        
+        # 解析各个位域
+        vbus_stat2 = (value >> 7) & 0x1     # bit 7: VBUS_STAT[2]
+        vbus_stat1 = (value >> 6) & 0x1     # bit 6: VBUS_STAT[1]
+        vbus_stat0 = (value >> 5) & 0x1     # bit 5: VBUS_STAT[0]
+        chrg_stat1 = (value >> 4) & 0x1     # bit 4: CHRG_STAT[1]
+        chrg_stat0 = (value >> 3) & 0x1     # bit 3: CHRG_STAT[0]
+        pg_stat = (value >> 2) & 0x1        # bit 2: PG_STAT
+        therm_stat = (value >> 1) & 0x1     # bit 1: THERM_STAT
+        vsys_stat = value & 0x1             # bit 0: VSYS_STAT
+        
+        # 组合VBUS_STAT[2:0]和CHRG_STAT[1:0]位
+        vbus_stat = (vbus_stat2 << 2) | (vbus_stat1 << 1) | vbus_stat0
+        chrg_stat = (chrg_stat1 << 1) | chrg_stat0
+        
+        # 解析VBUS状态
+        vbus_stat_desc = {
+            0: "No Input",
+            1: "USB Host SDP (500mA)",
+            2: "USB CDP (1.5A)",
+            3: "USB DCP (2.4A)",
+            4: "Adjustable High Voltage DCP (MaxCharge)",
+            5: "Unknown Adapter (500mA)",
+            6: "Non-Standard Adapter (1A/2A/2.1A/2.4A)",
+            7: "OTG"
+        }.get(vbus_stat, "Unknown")
+        
+        # 解析充电状态
+        chrg_stat_desc = {
+            0: "Not Charging",
+            1: "Pre-Charge (<VBATLOW)",
+            2: "Fast Charge",
+            3: "Charge Termination Done"
+        }.get(chrg_stat, "Unknown")
+        
+        result = {
+            'VBUS_STAT': {
+                'value': vbus_stat,
+                'binary': f'{vbus_stat:03b}',
+                'description': vbus_stat_desc
+            },
+            'CHRG_STAT': {
+                'value': chrg_stat,
+                'binary': f'{chrg_stat:02b}',
+                'description': chrg_stat_desc
+            },
+            'PG_STAT': {
+                'value': pg_stat,
+                'description': 'Power Good' if pg_stat == 1 else 'Not Power Good'
+            },
+            'THERM_STAT': {
+                'value': therm_stat,
+                'description': 'In Thermal Regulation' if therm_stat == 1 else 'Normal'
+            },
+            'VSYS_STAT': {
+                'value': vsys_stat,
+                'description': 'In VSYSMIN regulation (BAT<VSYSMIN)' if vsys_stat == 1 else 'Not in VSYSMIN regulation (BAT>VSYSMIN)'
+            }
+        }
+        
+        return result
+    except Exception as e:
+        print(f"解析寄存器08值时出错: {e}")
+        return None
+
 class OutputCapture:
     """捕获打印输出的类"""
     def __init__(self):
@@ -803,6 +872,62 @@ def display_reg07_info_to_output(reg_value, result, log_line, output, use_colors
     output.write("    * 10 = VBAT + 250mV")
     output.write("    * 11 = 保留")
 
+def display_reg08_info_to_output(reg_value, result, log_line, output, use_colors=True):
+    """显示寄存器08的解析信息到指定输出对象"""
+    # 将十六进制值转换为整数，然后转换为8位二进制字符串
+    binary_value = format(int(reg_value, 16), '08b')
+    # 为了更好的可读性，在二进制字符串中添加分隔符
+    binary_formatted = f"{binary_value[0:3]} {binary_value[3:5]} {binary_value[5]} {binary_value[6]} {binary_value[7]}"
+    
+    # 根据是否使用颜色来格式化输出
+    header = f"{Colors.HEADER}{Colors.BOLD}寄存器 0x08 解析结果:{Colors.END}" if use_colors else "寄存器 0x08 解析结果:"
+    cyan = Colors.CYAN if use_colors else ""
+    end = Colors.END if use_colors else ""
+    green = Colors.GREEN if use_colors else ""
+    yellow = Colors.YELLOW if use_colors else ""
+    
+    output.write(f"\n{header}")
+    output.write(f"{cyan}原始日志: {log_line}{end}")
+    output.write(f"{cyan}原始值: 0x{reg_value}{end}")
+    output.write(f"{cyan}二进制: {binary_formatted}  (bit 7 -> bit 0){end}")
+    output.write(f"{cyan}        │   │  │  │  └─ VSYS_STAT{end}")
+    output.write(f"{cyan}        │   │  │  └─── THERM_STAT{end}")
+    output.write(f"{cyan}        │   │  └───── PG_STAT{end}")
+    output.write(f"{cyan}        │   └─────── CHRG_STAT[1:0]{end}")
+    output.write(f"{cyan}        └─────────── VBUS_STAT[2:0]{end}")
+    output.write(f"\n{green}各位域含义:{end}")
+    output.write(f"  VBUS_STAT[2:0]: {result['VBUS_STAT']['description']}")
+    output.write(f"    二进制值: {result['VBUS_STAT']['binary']}")
+    output.write(f"  CHRG_STAT[1:0]: {result['CHRG_STAT']['description']}")
+    output.write(f"    二进制值: {result['CHRG_STAT']['binary']}")
+    output.write(f"  PG_STAT: {result['PG_STAT']['description']}")
+    output.write(f"  THERM_STAT: {result['THERM_STAT']['description']}")
+    output.write(f"  VSYS_STAT: {result['VSYS_STAT']['description']}")
+    output.write(f"\n{yellow}注意事项:{end}")
+    output.write("  - VBUS_STAT[2:0]: VBUS状态")
+    output.write("    * 000 = No Input")
+    output.write("    * 001 = USB Host SDP (500mA)")
+    output.write("    * 010 = USB CDP (1.5A)")
+    output.write("    * 011 = USB DCP (2.4A)")
+    output.write("    * 100 = Adjustable High Voltage DCP")
+    output.write("    * 101 = Unknown Adapter (500mA)")
+    output.write("    * 110 = Non-Standard Adapter (1A/2A/2.1A/2.4A)")
+    output.write("    * 111 = OTG")
+    output.write("  - CHRG_STAT[1:0]: 充电状态")
+    output.write("    * 00 = Not Charging")
+    output.write("    * 01 = Pre-Charge (<VBATLOW)")
+    output.write("    * 10 = Fast Charge")
+    output.write("    * 11 = Charge Termination Done")
+    output.write("  - PG_STAT: Power Good状态")
+    output.write("  - THERM_STAT: 热调节状态")
+    output.write("  - VSYS_STAT: VSYS调节状态")
+
+def display_reg08_info(reg_value, result, log_line):
+    """显示寄存器08的解析信息"""
+    output = OutputCapture()
+    display_reg08_info_to_output(reg_value, result, log_line, output, use_colors=True)
+    print(output.get_content())
+
 def display_reg00_info(reg_value, result, log_line):
     """显示寄存器00的解析信息"""
     output = OutputCapture()
@@ -1027,6 +1152,17 @@ def process_cx2560x(log_file=None):
                         output = OutputCapture()
                         display_reg07_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
                         write_to_file(output.get_content(), output_dir, output_file)
+                elif reg == '08':
+                    result = parse_reg08(value)
+                    if result:
+                        # 控制台输出带颜色
+                        output = OutputCapture()
+                        display_reg08_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=True)
+                        print(output.get_content())
+                        # 文件写入不带颜色
+                        output = OutputCapture()
+                        display_reg08_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
+                        write_to_file(output.get_content(), output_dir, output_file)
                 else:
                     print(f"暂不支持解析寄存器 0x{reg}")
             
@@ -1078,6 +1214,10 @@ def parse_register(reg, value):
         result = parse_reg07(value)
         if result:
             display_reg07_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
+    elif reg == '08':
+        result = parse_reg08(value)
+        if result:
+            display_reg08_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
     else:
         print(f"暂不支持解析寄存器 0x{reg}") 
 
