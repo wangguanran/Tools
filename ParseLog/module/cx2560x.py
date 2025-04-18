@@ -384,6 +384,69 @@ def parse_reg06(value):
         print(f"解析寄存器06值时出错: {e}")
         return None
 
+def parse_reg07(value):
+    """解析cx2560x的07寄存器值"""
+    try:
+        value = int(value, 16)  # 将16进制字符串转换为整数
+        
+        # 解析各个位域
+        iindet_en = (value >> 7) & 0x1      # bit 7: IINDET_EN
+        tmr2x_en = (value >> 6) & 0x1       # bit 6: TMR2X_EN
+        batfet_dis = (value >> 5) & 0x1     # bit 5: BATFET_DIS
+        jeita_vset = (value >> 4) & 0x1     # bit 4: JEITA_VSET
+        batfet_dly = (value >> 3) & 0x1     # bit 3: BATFET_DLY
+        batfet_rst_en = (value >> 2) & 0x1  # bit 2: BATFET_RST_EN
+        vdpm_track1 = (value >> 1) & 0x1    # bit 1: VDPM_TRACK[1]
+        vdpm_track0 = value & 0x1           # bit 0: VDPM_TRACK[0]
+        
+        # 组合VDPM_TRACK[1:0]位
+        vdpm_track = (vdpm_track1 << 1) | vdpm_track0
+        
+        # 解析VDPM跟踪设置
+        vdpm_track_desc = {
+            0: "Disable tracking function (VINDPM is set by register)",
+            1: "VBAT + 200mV",
+            2: "VBAT + 250mV",
+            3: "Reserved"
+        }.get(vdpm_track, "Unknown")
+        
+        result = {
+            'IINDET_EN': {
+                'value': iindet_en,
+                'description': 'Force D+/D- detection' if iindet_en == 1 else 'Not in D+/D- detection (default)'
+            },
+            'TMR2X_EN': {
+                'value': tmr2x_en,
+                'description': 'Safety timer slowed by 2X during input DPM or thermal regulation' if tmr2x_en == 1 else 'Safety timer not slowed by 2X during input DPM or thermal regulation (default)'
+            },
+            'BATFET_DIS': {
+                'value': batfet_dis,
+                'description': 'Force BATFET off' if batfet_dis == 1 else 'Allow BATFET turn on (default)'
+            },
+            'JEITA_VSET': {
+                'value': jeita_vset,
+                'description': 'Set Charge Voltage to VREG during JEITA high temperature' if jeita_vset == 1 else 'Set Charge Voltage to VREG-200mV during JEITA high temperature (default)'
+            },
+            'BATFET_DLY': {
+                'value': batfet_dly,
+                'description': 'BATFET turn off delay by tDLY_OFF (typ. 10s) when BATFET_DIS bit is set' if batfet_dly == 1 else 'BATFET turn off immediately when BATFET_DIS bit is set (default)'
+            },
+            'BATFET_RST_EN': {
+                'value': batfet_rst_en,
+                'description': 'Enable BATFET full system reset' if batfet_rst_en == 1 else 'Disable BATFET full system reset (default)'
+            },
+            'VDPM_TRACK': {
+                'value': vdpm_track,
+                'binary': f'{vdpm_track:02b}',
+                'description': vdpm_track_desc
+            }
+        }
+        
+        return result
+    except Exception as e:
+        print(f"解析寄存器07值时出错: {e}")
+        return None
+
 class OutputCapture:
     """捕获打印输出的类"""
     def __init__(self):
@@ -680,6 +743,66 @@ def display_reg06_info_to_output(reg_value, result, log_line, output, use_colors
     output.write("    * 步进: 100mV")
     output.write("    * 默认值: 4.5V (0110)")
 
+def display_reg07_info_to_output(reg_value, result, log_line, output, use_colors=True):
+    """显示寄存器07的解析信息到指定输出对象"""
+    # 将十六进制值转换为整数，然后转换为8位二进制字符串
+    binary_value = format(int(reg_value, 16), '08b')
+    # 为了更好的可读性，在二进制字符串中添加分隔符
+    binary_formatted = f"{binary_value[0]} {binary_value[1]} {binary_value[2]} {binary_value[3]} {binary_value[4]} {binary_value[5]} {binary_value[6]} {binary_value[7]}"
+    
+    # 根据是否使用颜色来格式化输出
+    header = f"{Colors.HEADER}{Colors.BOLD}寄存器 0x07 解析结果:{Colors.END}" if use_colors else "寄存器 0x07 解析结果:"
+    cyan = Colors.CYAN if use_colors else ""
+    end = Colors.END if use_colors else ""
+    green = Colors.GREEN if use_colors else ""
+    yellow = Colors.YELLOW if use_colors else ""
+    
+    output.write(f"\n{header}")
+    output.write(f"{cyan}原始日志: {log_line}{end}")
+    output.write(f"{cyan}原始值: 0x{reg_value}{end}")
+    output.write(f"{cyan}二进制: {binary_formatted}  (bit 7 -> bit 0){end}")
+    output.write(f"{cyan}        │ │ │ │ │ │ │ └─ VDPM_TRACK[1:0]{end}")
+    output.write(f"{cyan}        │ │ │ │ │ │ └─── BATFET_RST_EN{end}")
+    output.write(f"{cyan}        │ │ │ │ │ └─── BATFET_DLY{end}")
+    output.write(f"{cyan}        │ │ │ │ └─── JEITA_VSET{end}")
+    output.write(f"{cyan}        │ │ │ └─── BATFET_DIS{end}")
+    output.write(f"{cyan}        │ │ └─── TMR2X_EN{end}")
+    output.write(f"{cyan}        │ └─── IINDET_EN{end}")
+    output.write(f"{cyan}        └────── VDPM_TRACK[1:0]{end}")
+    output.write(f"\n{green}各位域含义:{end}")
+    output.write(f"  IINDET_EN (bit 7): {result['IINDET_EN']['description']}")
+    output.write(f"  TMR2X_EN (bit 6): {result['TMR2X_EN']['description']}")
+    output.write(f"  BATFET_DIS (bit 5): {result['BATFET_DIS']['description']}")
+    output.write(f"  JEITA_VSET (bit 4): {result['JEITA_VSET']['description']}")
+    output.write(f"  BATFET_DLY (bit 3): {result['BATFET_DLY']['description']}")
+    output.write(f"  BATFET_RST_EN (bit 2): {result['BATFET_RST_EN']['description']}")
+    output.write(f"  VDPM_TRACK[1:0]: {result['VDPM_TRACK']['description']}")
+    output.write(f"    二进制值: {result['VDPM_TRACK']['binary']}")
+    output.write(f"\n{yellow}注意事项:{end}")
+    output.write("  - IINDET_EN: 强制D+/D-检测")
+    output.write("    * 0 = 不强制检测")
+    output.write("    * 1 = 强制检测")
+    output.write("  - TMR2X_EN: 输入DPM或热调节期间安全定时器慢速")
+    output.write("    * 0 = 输入DPM或热调节期间安全定时器不慢速")
+    output.write("    * 1 = 输入DPM或热调节期间安全定时器慢速")
+    output.write("  - BATFET_DIS: 强制BATFET关闭")
+    output.write("    * 0 = 允许BATFET打开")
+    output.write("    * 1 = 强制BATFET关闭")
+    output.write("  - JEITA_VSET: 在JEITA高温期间将充电电压设置为VREG")
+    output.write("    * 0 = 在JEITA高温期间将充电电压设置为VREG-200mV")
+    output.write("    * 1 = 在JEITA高温期间将充电电压设置为VREG")
+    output.write("  - BATFET_DLY: BATFET关闭延迟")
+    output.write("    * 0 = 当BATFET_DIS位设置时，BATFET关闭延迟")
+    output.write("    * 1 = 当BATFET_DIS位设置时，BATFET立即关闭")
+    output.write("  - BATFET_RST_EN: 启用BATFET系统复位")
+    output.write("    * 0 = 禁用BATFET系统复位")
+    output.write("    * 1 = 启用BATFET系统复位")
+    output.write("  - VDPM_TRACK[1:0]: VDPM跟踪设置")
+    output.write("    * 00 = 禁用跟踪功能（VINDPM由寄存器设置）")
+    output.write("    * 01 = VBAT + 200mV")
+    output.write("    * 10 = VBAT + 250mV")
+    output.write("    * 11 = 保留")
+
 def display_reg00_info(reg_value, result, log_line):
     """显示寄存器00的解析信息"""
     output = OutputCapture()
@@ -720,6 +843,12 @@ def display_reg06_info(reg_value, result, log_line):
     """显示寄存器06的解析信息"""
     output = OutputCapture()
     display_reg06_info_to_output(reg_value, result, log_line, output, use_colors=True)
+    print(output.get_content())
+
+def display_reg07_info(reg_value, result, log_line):
+    """显示寄存器07的解析信息"""
+    output = OutputCapture()
+    display_reg07_info_to_output(reg_value, result, log_line, output, use_colors=True)
     print(output.get_content())
 
 def create_output_directory():
@@ -887,6 +1016,17 @@ def process_cx2560x(log_file=None):
                         output = OutputCapture()
                         display_reg06_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
                         write_to_file(output.get_content(), output_dir, output_file)
+                elif reg == '07':
+                    result = parse_reg07(value)
+                    if result:
+                        # 控制台输出带颜色
+                        output = OutputCapture()
+                        display_reg07_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=True)
+                        print(output.get_content())
+                        # 文件写入不带颜色
+                        output = OutputCapture()
+                        display_reg07_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
+                        write_to_file(output.get_content(), output_dir, output_file)
                 else:
                     print(f"暂不支持解析寄存器 0x{reg}")
             
@@ -934,6 +1074,10 @@ def parse_register(reg, value):
         result = parse_reg06(value)
         if result:
             display_reg06_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
+    elif reg == '07':
+        result = parse_reg07(value)
+        if result:
+            display_reg07_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
     else:
         print(f"暂不支持解析寄存器 0x{reg}") 
 
