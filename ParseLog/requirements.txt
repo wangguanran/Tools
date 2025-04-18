@@ -1,0 +1,13 @@
+# 标准库依赖
+# 这些是Python标准库，不需要额外安装
+# os
+# zipfile
+# gzip
+# shutil
+# pathlib
+# re
+# datetime
+# heapq
+
+# 第三方库依赖
+# 目前没有使用第三方库 
