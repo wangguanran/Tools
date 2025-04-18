@@ -7,7 +7,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 import heapq
-from module.cx2560x import (
+from ParseLog.module.cx2560x.cx2560x import (
     check_cx2560x_ic,
     parse_cx2560x_registers,
     process_cx2560x,
