@@ -472,7 +472,6 @@ def parse_reg08(value):
             1: "USB Host SDP (500mA)",
             2: "USB CDP (1.5A)",
             3: "USB DCP (2.4A)",
-            4: "Adjustable High Voltage DCP (MaxCharge)",
             5: "Unknown Adapter (500mA)",
             6: "Non-Standard Adapter (1A/2A/2.1A/2.4A)",
             7: "OTG"
@@ -480,7 +479,7 @@ def parse_reg08(value):
         
         # 解析充电状态
         chrg_stat_desc = {
-            0: "Not Charging",
+            0: "Not in Charging",
             1: "Pre-Charge (<VBATLOW)",
             2: "Fast Charge",
             3: "Charge Termination Done"
@@ -909,12 +908,11 @@ def display_reg08_info_to_output(reg_value, result, log_line, output, use_colors
     output.write("    * 001 = USB Host SDP (500mA)")
     output.write("    * 010 = USB CDP (1.5A)")
     output.write("    * 011 = USB DCP (2.4A)")
-    output.write("    * 100 = Adjustable High Voltage DCP")
     output.write("    * 101 = Unknown Adapter (500mA)")
     output.write("    * 110 = Non-Standard Adapter (1A/2A/2.1A/2.4A)")
     output.write("    * 111 = OTG")
     output.write("  - CHRG_STAT[1:0]: 充电状态")
-    output.write("    * 00 = Not Charging")
+    output.write("    * 00 = Not in Charging")
     output.write("    * 01 = Pre-Charge (<VBATLOW)")
     output.write("    * 10 = Fast Charge")
     output.write("    * 11 = Charge Termination Done")
