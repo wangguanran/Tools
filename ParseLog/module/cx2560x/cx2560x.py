@@ -515,6 +515,166 @@ def parse_reg08(value):
         print(f"解析寄存器08值时出错: {e}")
         return None
 
+def parse_reg09(value):
+    """解析cx2560x的09寄存器值"""
+    try:
+        value = int(value, 16)  # 将16进制字符串转换为整数
+        
+        # 解析各个位域
+        fault_wdt = (value >> 7) & 0x1      # bit 7: FAULT_WDT
+        fault_boost = (value >> 6) & 0x1     # bit 6: FAULT_BOOST
+        fault_chrg = (value >> 5) & 0x1      # bit 5: FAULT_CHRG
+        fault_bat = (value >> 4) & 0x1       # bit 4: FAULT_BAT
+        fault_ntc = (value >> 3) & 0x1       # bit 3: FAULT_NTC
+        reserved = value & 0x07              # bits [2:0]: Reserved
+        
+        result = {
+            'FAULT_WDT': {
+                'value': fault_wdt,
+                'description': 'Watchdog Timer Expiration' if fault_wdt == 1 else 'Normal'
+            },
+            'FAULT_BOOST': {
+                'value': fault_boost,
+                'description': 'Boost Mode Fault' if fault_boost == 1 else 'Normal'
+            },
+            'FAULT_CHRG': {
+                'value': fault_chrg,
+                'description': 'Charge Fault' if fault_chrg == 1 else 'Normal'
+            },
+            'FAULT_BAT': {
+                'value': fault_bat,
+                'description': 'Battery Fault' if fault_bat == 1 else 'Normal'
+            },
+            'FAULT_NTC': {
+                'value': fault_ntc,
+                'description': 'NTC Fault' if fault_ntc == 1 else 'Normal'
+            },
+            'Reserved': {
+                'value': reserved,
+                'description': 'Reserved bits'
+            }
+        }
+        
+        return result
+    except Exception as e:
+        print(f"解析寄存器09值时出错: {e}")
+        return None
+
+def parse_reg0A(value):
+    """解析cx2560x的0A寄存器值"""
+    try:
+        value = int(value, 16)  # 将16进制字符串转换为整数
+        
+        # 解析各个位域
+        vbus_gd = (value >> 7) & 0x1       # bit 7: VBUS_GD
+        vdpm_stat = (value >> 6) & 0x1     # bit 6: VDPM_STAT
+        idpm_stat = (value >> 5) & 0x1     # bit 5: IDPM_STAT
+        reserved2 = (value >> 4) & 0x1     # bit 4: Reserved
+        reserved1 = (value >> 3) & 0x1     # bit 3: Reserved
+        acov_stat = (value >> 2) & 0x1     # bit 2: ACOV_STAT
+        vindpm_stat = (value >> 1) & 0x1   # bit 1: VINDPM_STAT
+        iindpm_stat = value & 0x1          # bit 0: IINDPM_STAT
+        
+        result = {
+            'VBUS_GD': {
+                'value': vbus_gd,
+                'description': 'VBUS Good' if vbus_gd == 1 else 'VBUS not Good'
+            },
+            'VDPM_STAT': {
+                'value': vdpm_stat,
+                'description': 'In DPM Mode' if vdpm_stat == 1 else 'Not in DPM Mode'
+            },
+            'IDPM_STAT': {
+                'value': idpm_stat,
+                'description': 'In DPM Mode' if idpm_stat == 1 else 'Not in DPM Mode'
+            },
+            'Reserved2': {
+                'value': reserved2,
+                'description': 'Reserved bit'
+            },
+            'Reserved1': {
+                'value': reserved1,
+                'description': 'Reserved bit'
+            },
+            'ACOV_STAT': {
+                'value': acov_stat,
+                'description': 'ACOV (Input > VACOV)' if acov_stat == 1 else 'Normal'
+            },
+            'VINDPM_STAT': {
+                'value': vindpm_stat,
+                'description': 'In VINDPM Mode' if vindpm_stat == 1 else 'Not in VINDPM Mode'
+            },
+            'IINDPM_STAT': {
+                'value': iindpm_stat,
+                'description': 'In IINDPM Mode' if iindpm_stat == 1 else 'Not in IINDPM Mode'
+            }
+        }
+        
+        return result
+    except Exception as e:
+        print(f"解析寄存器0A值时出错: {e}")
+        return None
+
+def display_reg0A_info_to_output(reg_value, result, log_line, output, use_colors=True):
+    """显示寄存器0A的解析信息到指定输出对象"""
+    # 将十六进制值转换为整数，然后转换为8位二进制字符串
+    binary_value = format(int(reg_value, 16), '08b')
+    # 为了更好的可读性，在二进制字符串中添加分隔符
+    binary_formatted = f"{binary_value[0]} {binary_value[1]} {binary_value[2]} {binary_value[3]} {binary_value[4]} {binary_value[5]} {binary_value[6]} {binary_value[7]}"
+    
+    # 根据是否使用颜色来格式化输出
+    header = f"{Colors.HEADER}{Colors.BOLD}寄存器 0x0A 解析结果:{Colors.END}" if use_colors else "寄存器 0x0A 解析结果:"
+    cyan = Colors.CYAN if use_colors else ""
+    end = Colors.END if use_colors else ""
+    green = Colors.GREEN if use_colors else ""
+    yellow = Colors.YELLOW if use_colors else ""
+    
+    output.write(f"\n{header}")
+    output.write(f"{cyan}原始日志: {log_line}{end}")
+    output.write(f"{cyan}原始值: 0x{reg_value}{end}")
+    output.write(f"{cyan}二进制: {binary_formatted}  (bit 7 -> bit 0){end}")
+    output.write(f"{cyan}        │ │ │ │ │ │ │ └─ IINDPM_STAT{end}")
+    output.write(f"{cyan}        │ │ │ │ │ │ └─── VINDPM_STAT{end}")
+    output.write(f"{cyan}        │ │ │ │ │ └───── ACOV_STAT{end}")
+    output.write(f"{cyan}        │ │ │ │ └─────── Reserved{end}")
+    output.write(f"{cyan}        │ │ │ └───────── Reserved{end}")
+    output.write(f"{cyan}        │ │ └─────────── IDPM_STAT{end}")
+    output.write(f"{cyan}        │ └───────────── VDPM_STAT{end}")
+    output.write(f"{cyan}        └─────────────── VBUS_GD{end}")
+    output.write(f"\n{green}各位域含义:{end}")
+    output.write(f"  VBUS_GD: {result['VBUS_GD']['description']}")
+    output.write(f"  VDPM_STAT: {result['VDPM_STAT']['description']}")
+    output.write(f"  IDPM_STAT: {result['IDPM_STAT']['description']}")
+    output.write(f"  Reserved: {result['Reserved2']['description']}, {result['Reserved1']['description']}")
+    output.write(f"  ACOV_STAT: {result['ACOV_STAT']['description']}")
+    output.write(f"  VINDPM_STAT: {result['VINDPM_STAT']['description']}")
+    output.write(f"  IINDPM_STAT: {result['IINDPM_STAT']['description']}")
+    output.write(f"\n{yellow}注意事项:{end}")
+    output.write("  - VBUS_GD: VBUS电压状态")
+    output.write("    * 0 = VBUS电压不在有效范围")
+    output.write("    * 1 = VBUS电压在有效范围内")
+    output.write("  - VDPM_STAT: 电压动态功率管理状态")
+    output.write("    * 0 = 不在DPM模式")
+    output.write("    * 1 = 在DPM模式")
+    output.write("  - IDPM_STAT: 电流动态功率管理状态")
+    output.write("    * 0 = 不在DPM模式")
+    output.write("    * 1 = 在DPM模式")
+    output.write("  - ACOV_STAT: 输入过压状态")
+    output.write("    * 0 = 正常")
+    output.write("    * 1 = 输入电压高于VACOV阈值")
+    output.write("  - VINDPM_STAT: 输入电压DPM状态")
+    output.write("    * 0 = 不在VINDPM模式")
+    output.write("    * 1 = 在VINDPM模式")
+    output.write("  - IINDPM_STAT: 输入电流DPM状态")
+    output.write("    * 0 = 不在IINDPM模式")
+    output.write("    * 1 = 在IINDPM模式")
+
+def display_reg0A_info(reg_value, result, log_line):
+    """显示寄存器0A的解析信息"""
+    output = OutputCapture()
+    display_reg0A_info_to_output(reg_value, result, log_line, output, use_colors=True)
+    print(output.get_content())
+
 class OutputCapture:
     """捕获打印输出的类"""
     def __init__(self):
@@ -920,6 +1080,60 @@ def display_reg08_info_to_output(reg_value, result, log_line, output, use_colors
     output.write("  - THERM_STAT: 热调节状态")
     output.write("  - VSYS_STAT: VSYS调节状态")
 
+def display_reg09_info_to_output(reg_value, result, log_line, output, use_colors=True):
+    """显示寄存器09的解析信息到指定输出对象"""
+    # 将十六进制值转换为整数，然后转换为8位二进制字符串
+    binary_value = format(int(reg_value, 16), '08b')
+    # 为了更好的可读性，在二进制字符串中添加分隔符
+    binary_formatted = f"{binary_value[0]} {binary_value[1]} {binary_value[2]} {binary_value[3]} {binary_value[4]} {binary_value[5:8]}"
+    
+    # 根据是否使用颜色来格式化输出
+    header = f"{Colors.HEADER}{Colors.BOLD}寄存器 0x09 解析结果:{Colors.END}" if use_colors else "寄存器 0x09 解析结果:"
+    cyan = Colors.CYAN if use_colors else ""
+    end = Colors.END if use_colors else ""
+    green = Colors.GREEN if use_colors else ""
+    yellow = Colors.YELLOW if use_colors else ""
+    
+    output.write(f"\n{header}")
+    output.write(f"{cyan}原始日志: {log_line}{end}")
+    output.write(f"{cyan}原始值: 0x{reg_value}{end}")
+    output.write(f"{cyan}二进制: {binary_formatted}  (bit 7 -> bit 0){end}")
+    output.write(f"{cyan}        │ │ │ │ │ └─ Reserved[2:0]{end}")
+    output.write(f"{cyan}        │ │ │ │ └─── FAULT_NTC{end}")
+    output.write(f"{cyan}        │ │ │ └───── FAULT_BAT{end}")
+    output.write(f"{cyan}        │ │ └─────── FAULT_CHRG{end}")
+    output.write(f"{cyan}        │ └───────── FAULT_BOOST{end}")
+    output.write(f"{cyan}        └─────────── FAULT_WDT{end}")
+    output.write(f"\n{green}各位域含义:{end}")
+    output.write(f"  FAULT_WDT: {result['FAULT_WDT']['description']}")
+    output.write(f"  FAULT_BOOST: {result['FAULT_BOOST']['description']}")
+    output.write(f"  FAULT_CHRG: {result['FAULT_CHRG']['description']}")
+    output.write(f"  FAULT_BAT: {result['FAULT_BAT']['description']}")
+    output.write(f"  FAULT_NTC: {result['FAULT_NTC']['description']}")
+    output.write(f"  Reserved[2:0]: {result['Reserved']['description']}")
+    output.write(f"\n{yellow}注意事项:{end}")
+    output.write("  - FAULT_WDT: 看门狗定时器超时故障")
+    output.write("    * 0 = 正常")
+    output.write("    * 1 = 看门狗定时器超时")
+    output.write("  - FAULT_BOOST: Boost模式故障")
+    output.write("    * 0 = 正常")
+    output.write("    * 1 = Boost模式故障")
+    output.write("  - FAULT_CHRG: 充电故障")
+    output.write("    * 0 = 正常")
+    output.write("    * 1 = 充电故障")
+    output.write("  - FAULT_BAT: 电池故障")
+    output.write("    * 0 = 正常")
+    output.write("    * 1 = 电池故障")
+    output.write("  - FAULT_NTC: NTC故障")
+    output.write("    * 0 = 正常")
+    output.write("    * 1 = NTC故障")
+
+def display_reg09_info(reg_value, result, log_line):
+    """显示寄存器09的解析信息"""
+    output = OutputCapture()
+    display_reg09_info_to_output(reg_value, result, log_line, output, use_colors=True)
+    print(output.get_content())
+
 def display_reg08_info(reg_value, result, log_line):
     """显示寄存器08的解析信息"""
     output = OutputCapture()
@@ -1013,21 +1227,16 @@ def parse_cx2560x_registers(log_file):
         with open(log_file, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             for line in lines:
-                if 'cx2560x_dump_register: [REG_0x00]=' in line:
-                    match = re.search(r'\[REG_0x00\]=0x([0-9a-fA-F]{2})', line)
-                    if match:
-                        reg_value = match.group(1)
-                        result = parse_reg00(reg_value)
+                # 使用parse_register函数统一处理所有寄存器
+                match = re.search(r'\[REG_0x([0-9a-fA-F]{2})\]=0x([0-9a-fA-F]{2})', line)
+                if match:
+                    reg = match.group(1)
+                    value = match.group(2)
+                    parse_func, display_func = parse_register(reg, value)
+                    if parse_func and display_func:
+                        result = parse_func(value)
                         if result:
-                            display_reg00_info(reg_value, result, line.strip())
-                
-                if 'cx2560x_dump_register: [REG_0x01]=' in line:
-                    match = re.search(r'\[REG_0x01\]=0x([0-9a-fA-F]{2})', line)
-                    if match:
-                        reg_value = match.group(1)
-                        result = parse_reg01(reg_value)
-                        if result:
-                            display_reg01_info(reg_value, result, line.strip())
+                            display_func(value, result, line.strip())
     except Exception as e:
         print(f"解析cx2560x寄存器时出错: {e}")
 
@@ -1161,6 +1370,72 @@ def process_cx2560x(log_file=None):
                         output = OutputCapture()
                         display_reg08_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
                         write_to_file(output.get_content(), output_dir, output_file)
+                elif reg == '09':
+                    result = parse_reg09(value)
+                    if result:
+                        # 控制台输出带颜色
+                        output = OutputCapture()
+                        display_reg09_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=True)
+                        print(output.get_content())
+                        # 文件写入不带颜色
+                        output = OutputCapture()
+                        display_reg09_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
+                        write_to_file(output.get_content(), output_dir, output_file)
+                elif reg == '0a':
+                    result = parse_reg0A(value)
+                    if result:
+                        # 控制台输出带颜色
+                        output = OutputCapture()
+                        display_reg0A_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=True)
+                        print(output.get_content())
+                        # 文件写入不带颜色
+                        output = OutputCapture()
+                        display_reg0A_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
+                        write_to_file(output.get_content(), output_dir, output_file)
+                elif reg == '0b':
+                    result = parse_reg0B(value)
+                    if result:
+                        # 控制台输出带颜色
+                        output = OutputCapture()
+                        display_reg0B_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=True)
+                        print(output.get_content())
+                        # 文件写入不带颜色
+                        output = OutputCapture()
+                        display_reg0B_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
+                        write_to_file(output.get_content(), output_dir, output_file)
+                elif reg == '0c':
+                    result = parse_reg0C(value)
+                    if result:
+                        # 控制台输出带颜色
+                        output = OutputCapture()
+                        display_reg0C_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=True)
+                        print(output.get_content())
+                        # 文件写入不带颜色
+                        output = OutputCapture()
+                        display_reg0C_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
+                        write_to_file(output.get_content(), output_dir, output_file)
+                elif reg == '0d':
+                    result = parse_reg0D(value)
+                    if result:
+                        # 控制台输出带颜色
+                        output = OutputCapture()
+                        display_reg0D_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=True)
+                        print(output.get_content())
+                        # 文件写入不带颜色
+                        output = OutputCapture()
+                        display_reg0D_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
+                        write_to_file(output.get_content(), output_dir, output_file)
+                elif reg == '0e':
+                    result = parse_reg0E(value)
+                    if result:
+                        # 控制台输出带颜色
+                        output = OutputCapture()
+                        display_reg0E_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=True)
+                        print(output.get_content())
+                        # 文件写入不带颜色
+                        output = OutputCapture()
+                        display_reg0E_info_to_output(value, result, f"用户输入: REG_0x{reg}=0x{value}", output, use_colors=False)
+                        write_to_file(output.get_content(), output_dir, output_file)
                 else:
                     print(f"暂不支持解析寄存器 0x{reg}")
             
@@ -1172,52 +1447,468 @@ def process_cx2560x(log_file=None):
             print(f"解析输入时出错: {e}")
 
 def parse_register(reg, value):
-    """解析指定的寄存器值"""
+    """根据寄存器地址解析寄存器值
+    
+    Args:
+        reg: 寄存器地址
+        value: 寄存器值(16进制字符串)
+    
+    Returns:
+        解析结果字典
+    """
     reg = reg.lower()
-    if not re.match(r'^[0-9a-f]{2}$', reg) or not re.match(r'^[0-9a-f]{2}$', value):
-        print("错误: 寄存器和值必须是两位十六进制数，例如: 00 5d")
-        return
+    parse_functions = {
+        "00": parse_reg00,
+        "01": parse_reg01,
+        "02": parse_reg02,
+        "03": parse_reg03,
+        "04": parse_reg04,
+        "05": parse_reg05,
+        "06": parse_reg06,
+        "07": parse_reg07,
+        "08": parse_reg08,
+        "09": parse_reg09,
+        "0a": parse_reg0A,
+        "0b": parse_reg0B,
+        "0c": parse_reg0C,
+        "0d": parse_reg0D,
+        "0e": parse_reg0E
+    }
     
-    print(f"\n解析寄存器 0x{reg} = 0x{value}")
+    display_functions = {
+        "00": display_reg00_info,
+        "01": display_reg01_info,
+        "02": display_reg02_info,
+        "03": display_reg03_info,
+        "04": display_reg04_info,
+        "05": display_reg05_info,
+        "06": display_reg06_info,
+        "07": display_reg07_info,
+        "08": display_reg08_info,
+        "09": display_reg09_info,
+        "0a": display_reg0A_info,
+        "0b": display_reg0B_info,
+        "0c": display_reg0C_info,
+        "0d": display_reg0D_info,
+        "0e": display_reg0E_info
+    }
     
-    if reg == '00':
-        result = parse_reg00(value)
-        if result:
-            display_reg00_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
-    elif reg == '01':
-        result = parse_reg01(value)
-        if result:
-            display_reg01_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
-    elif reg == '02':
-        result = parse_reg02(value)
-        if result:
-            display_reg02_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
-    elif reg == '03':
-        result = parse_reg03(value)
-        if result:
-            display_reg03_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
-    elif reg == '04':
-        result = parse_reg04(value)
-        if result:
-            display_reg04_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
-    elif reg == '05':
-        result = parse_reg05(value)
-        if result:
-            display_reg05_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
-    elif reg == '06':
-        result = parse_reg06(value)
-        if result:
-            display_reg06_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
-    elif reg == '07':
-        result = parse_reg07(value)
-        if result:
-            display_reg07_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
-    elif reg == '08':
-        result = parse_reg08(value)
-        if result:
-            display_reg08_info(value, result, f"用户输入: REG_0x{reg}=0x{value}")
+    if reg in parse_functions:
+        return parse_functions[reg], display_functions[reg]
     else:
-        print(f"暂不支持解析寄存器 0x{reg}") 
+        return None, None
+
+def parse_reg0B(value):
+    """解析cx2560x的0B寄存器值"""
+    try:
+        value = int(value, 16)  # 将16进制字符串转换为整数
+        
+        # 解析各个位域
+        reg_rst = (value >> 7) & 0x1       # bit 7: REG_RST
+        pn3 = (value >> 6) & 0x1           # bit 6: PN[3]
+        pn2 = (value >> 5) & 0x1           # bit 5: PN[2]
+        pn1 = (value >> 4) & 0x1           # bit 4: PN[1]
+        pn0 = (value >> 3) & 0x1           # bit 3: PN[0]
+        reserved = (value >> 2) & 0x1       # bit 2: Reserved
+        dev_rev1 = (value >> 1) & 0x1      # bit 1: DEV_REV[1]
+        dev_rev0 = value & 0x1             # bit 0: DEV_REV[0]
+        
+        # 组合PN[3:0]位
+        pn = (pn3 << 3) | (pn2 << 2) | (pn1 << 1) | pn0
+        
+        # 组合DEV_REV[1:0]位
+        dev_rev = (dev_rev1 << 1) | dev_rev0
+        
+        result = {
+            'REG_RST': {
+                'value': reg_rst,
+                'description': 'Reset to default register value and reset safety timer' if reg_rst == 1 else 'Keep current register setting'
+            },
+            'PN': {
+                'value': pn,
+                'binary': f'{pn:04b}',
+                'description': f'Part Number: 0x{pn:X}'
+            },
+            'Reserved': {
+                'value': reserved,
+                'description': 'Reserved bit'
+            },
+            'DEV_REV': {
+                'value': dev_rev,
+                'binary': f'{dev_rev:02b}',
+                'description': f'Device Revision: 0x{dev_rev:X}'
+            }
+        }
+        
+        return result
+    except Exception as e:
+        print(f"解析寄存器0B值时出错: {e}")
+        return None
+
+def display_reg0B_info_to_output(reg_value, result, log_line, output, use_colors=True):
+    """显示寄存器0B的解析信息到指定输出对象"""
+    # 将十六进制值转换为整数，然后转换为8位二进制字符串
+    binary_value = format(int(reg_value, 16), '08b')
+    # 为了更好的可读性，在二进制字符串中添加分隔符
+    binary_formatted = f"{binary_value[0]} {binary_value[1:5]} {binary_value[5]} {binary_value[6:8]}"
+    
+    # 根据是否使用颜色来格式化输出
+    header = f"{Colors.HEADER}{Colors.BOLD}寄存器 0x0B 解析结果:{Colors.END}" if use_colors else "寄存器 0x0B 解析结果:"
+    cyan = Colors.CYAN if use_colors else ""
+    end = Colors.END if use_colors else ""
+    green = Colors.GREEN if use_colors else ""
+    yellow = Colors.YELLOW if use_colors else ""
+    
+    output.write(f"\n{header}")
+    output.write(f"{cyan}原始日志: {log_line}{end}")
+    output.write(f"{cyan}原始值: 0x{reg_value}{end}")
+    output.write(f"{cyan}二进制: {binary_formatted}  (bit 7 -> bit 0){end}")
+    output.write(f"{cyan}        │ │    │ └─ DEV_REV[1:0]{end}")
+    output.write(f"{cyan}        │ │    └─── Reserved{end}")
+    output.write(f"{cyan}        │ └──────── PN[3:0]{end}")
+    output.write(f"{cyan}        └────────── REG_RST{end}")
+    output.write(f"\n{green}各位域含义:{end}")
+    output.write(f"  REG_RST: {result['REG_RST']['description']}")
+    output.write(f"  PN[3:0]: {result['PN']['description']}")
+    output.write(f"    二进制值: {result['PN']['binary']}")
+    output.write(f"  Reserved: {result['Reserved']['description']}")
+    output.write(f"  DEV_REV[1:0]: {result['DEV_REV']['description']}")
+    output.write(f"    二进制值: {result['DEV_REV']['binary']}")
+    output.write(f"\n{yellow}注意事项:{end}")
+    output.write("  - REG_RST: 寄存器复位控制")
+    output.write("    * 0 = 保持当前寄存器设置")
+    output.write("    * 1 = 复位到默认寄存器值并复位安全定时器")
+    output.write("    注意: 位在寄存器复位完成后自动复位为0")
+    output.write("  - PN[3:0]: 芯片型号")
+    output.write("  - DEV_REV[1:0]: 设备版本号")
+
+def display_reg0B_info(reg_value, result, log_line):
+    """显示寄存器0B的解析信息"""
+    output = OutputCapture()
+    display_reg0B_info_to_output(reg_value, result, log_line, output, use_colors=True)
+    print(output.get_content())
+
+def parse_reg0C(value):
+    """解析cx2560x的0C寄存器值"""
+    try:
+        value = int(value, 16)  # 将16进制字符串转换为整数
+        
+        # 解析各个位域
+        boost_freq = (value >> 7) & 0x1     # bit 7: BOOST_FREQ
+        bcold = (value >> 6) & 0x1          # bit 6: BCOLD
+        bhot1 = (value >> 5) & 0x1          # bit 5: BHOT[1]
+        bhot0 = (value >> 4) & 0x1          # bit 4: BHOT[0]
+        reserved3 = (value >> 3) & 0x1      # bit 3: Reserved
+        reserved2 = (value >> 2) & 0x1      # bit 2: Reserved
+        reserved1 = (value >> 1) & 0x1      # bit 1: Reserved
+        ico_en = value & 0x1                # bit 0: ICO_EN
+        
+        # 组合BHOT[1:0]位
+        bhot = (bhot1 << 1) | bhot0
+        
+        # 解析BHOT温度阈值
+        bhot_desc = {
+            0: "VBHOT1 Threshold (94.75%, 60°C)",
+            1: "VBHOT2 Threshold (97.75%, 55°C)",
+            2: "VBHOT3 Threshold (81.25%, 65°C) (default)",
+            3: "Disable boost mode thermal protection"
+        }.get(bhot, "Unknown")
+        
+        result = {
+            'BOOST_FREQ': {
+                'value': boost_freq,
+                'description': '500kHz' if boost_freq == 1 else '1.5MHz (default)'
+            },
+            'BCOLD': {
+                'value': bcold,
+                'description': 'VBCOLD2 Threshold (80%, -20°C) (default)' if bcold == 1 else 'VBCOLD1 Threshold (77%, -10°C)'
+            },
+            'BHOT': {
+                'value': bhot,
+                'binary': f'{bhot:02b}',
+                'description': bhot_desc
+            },
+            'Reserved': {
+                'value': (reserved3 << 2) | (reserved2 << 1) | reserved1,
+                'description': 'Reserved bits'
+            },
+            'ICO_EN': {
+                'value': ico_en,
+                'description': 'Enable Input Current Optimization' if ico_en == 1 else 'Disable Optimization'
+            }
+        }
+        
+        return result
+    except Exception as e:
+        print(f"解析寄存器0C值时出错: {e}")
+        return None
+
+def display_reg0C_info_to_output(reg_value, result, log_line, output, use_colors=True):
+    """显示寄存器0C的解析信息到指定输出对象"""
+    # 将十六进制值转换为整数，然后转换为8位二进制字符串
+    binary_value = format(int(reg_value, 16), '08b')
+    # 为了更好的可读性，在二进制字符串中添加分隔符
+    binary_formatted = f"{binary_value[0]} {binary_value[1]} {binary_value[2:4]} {binary_value[4:7]} {binary_value[7]}"
+    
+    # 根据是否使用颜色来格式化输出
+    header = f"{Colors.HEADER}{Colors.BOLD}寄存器 0x0C 解析结果:{Colors.END}" if use_colors else "寄存器 0x0C 解析结果:"
+    cyan = Colors.CYAN if use_colors else ""
+    end = Colors.END if use_colors else ""
+    green = Colors.GREEN if use_colors else ""
+    yellow = Colors.YELLOW if use_colors else ""
+    
+    output.write(f"\n{header}")
+    output.write(f"{cyan}原始日志: {log_line}{end}")
+    output.write(f"{cyan}原始值: 0x{reg_value}{end}")
+    output.write(f"{cyan}二进制: {binary_formatted}  (bit 7 -> bit 0){end}")
+    output.write(f"{cyan}        │ │ │   │ └─ ICO_EN{end}")
+    output.write(f"{cyan}        │ │ │   └─── Reserved[2:0]{end}")
+    output.write(f"{cyan}        │ │ └─────── BHOT[1:0]{end}")
+    output.write(f"{cyan}        │ └───────── BCOLD{end}")
+    output.write(f"{cyan}        └─────────── BOOST_FREQ{end}")
+    output.write(f"\n{green}各位域含义:{end}")
+    output.write(f"  BOOST_FREQ: {result['BOOST_FREQ']['description']}")
+    output.write(f"  BCOLD: {result['BCOLD']['description']}")
+    output.write(f"  BHOT[1:0]: {result['BHOT']['description']}")
+    output.write(f"    二进制值: {result['BHOT']['binary']}")
+    output.write(f"  Reserved[2:0]: {result['Reserved']['description']}")
+    output.write(f"  ICO_EN: {result['ICO_EN']['description']}")
+    output.write(f"\n{yellow}注意事项:{end}")
+    output.write("  - BOOST_FREQ: Boost模式频率选择")
+    output.write("    * 0 = 1.5MHz (default)")
+    output.write("    * 1 = 500kHz")
+    output.write("  - BCOLD: Boost模式冷温度监控阈值")
+    output.write("    * 0 = VBCOLD1 Threshold (77%, -10°C)")
+    output.write("    * 1 = VBCOLD2 Threshold (80%, -20°C) (default)")
+    output.write("  - BHOT[1:0]: Boost模式热温度监控阈值")
+    output.write("    * 00 = VBHOT1 Threshold (94.75%, 60°C)")
+    output.write("    * 01 = VBHOT2 Threshold (97.75%, 55°C)")
+    output.write("    * 10 = VBHOT3 Threshold (81.25%, 65°C) (default)")
+    output.write("    * 11 = 禁用boost模式热保护")
+    output.write("  - ICO_EN: 输入电流限制优化使能")
+    output.write("    * 0 = 禁用优化")
+    output.write("    * 1 = 使能优化")
+
+def display_reg0C_info(reg_value, result, log_line):
+    """显示寄存器0C的解析信息"""
+    output = OutputCapture()
+    display_reg0C_info_to_output(reg_value, result, log_line, output, use_colors=True)
+    print(output.get_content())
+
+def parse_reg0D(value):
+    """解析cx2560x的0D寄存器值"""
+    try:
+        value = int(value, 16)  # 将16进制字符串转换为整数
+        
+        # 解析各个位域
+        force_ico = (value >> 7) & 0x1      # bit 7: FORCE_ICO
+        ico_optimized = (value >> 6) & 0x1   # bit 6: ICO_OPTIMIZED
+        idpm_lim5 = (value >> 5) & 0x1      # bit 5: IDPM_LIM[5]
+        idpm_lim4 = (value >> 4) & 0x1      # bit 4: IDPM_LIM[4]
+        idpm_lim3 = (value >> 3) & 0x1      # bit 3: IDPM_LIM[3]
+        idpm_lim2 = (value >> 2) & 0x1      # bit 2: IDPM_LIM[2]
+        idpm_lim1 = (value >> 1) & 0x1      # bit 1: IDPM_LIM[1]
+        idpm_lim0 = value & 0x1             # bit 0: IDPM_LIM[0]
+        
+        # 组合IDPM_LIM[5:0]位
+        idpm_lim = (idpm_lim5 << 5) | (idpm_lim4 << 4) | (idpm_lim3 << 3) | \
+                  (idpm_lim2 << 2) | (idpm_lim1 << 1) | idpm_lim0
+        
+        # 计算输入电流限制值
+        # 偏移值: 100mA
+        # 范围: 100mA (000000) - 3.25A (111111)
+        current_limit = 100 + (idpm_lim * 50)  # 每步50mA
+        
+        result = {
+            'FORCE_ICO': {
+                'value': force_ico,
+                'description': 'Force ICO (will back to 0 after ICO starts)' if force_ico == 1 else 'Do not force ICO'
+            },
+            'ICO_OPTIMIZED': {
+                'value': ico_optimized,
+                'description': 'Maximum Input Current Detected' if ico_optimized == 1 else 'Optimization is in progress'
+            },
+            'IDPM_LIM': {
+                'value': idpm_lim,
+                'binary': f'{idpm_lim:06b}',
+                'current': f'{current_limit}mA',
+                'description': f'Input Current Limit: {current_limit}mA'
+            }
+        }
+        
+        return result
+    except Exception as e:
+        print(f"解析寄存器0D值时出错: {e}")
+        return None
+
+def display_reg0D_info_to_output(reg_value, result, log_line, output, use_colors=True):
+    """显示寄存器0D的解析信息到指定输出对象"""
+    # 将十六进制值转换为整数，然后转换为8位二进制字符串
+    binary_value = format(int(reg_value, 16), '08b')
+    # 为了更好的可读性，在二进制字符串中添加分隔符
+    binary_formatted = f"{binary_value[0]} {binary_value[1]} {binary_value[2:8]}"
+    
+    # 根据是否使用颜色来格式化输出
+    header = f"{Colors.HEADER}{Colors.BOLD}寄存器 0x0D 解析结果:{Colors.END}" if use_colors else "寄存器 0x0D 解析结果:"
+    cyan = Colors.CYAN if use_colors else ""
+    end = Colors.END if use_colors else ""
+    green = Colors.GREEN if use_colors else ""
+    yellow = Colors.YELLOW if use_colors else ""
+    
+    output.write(f"\n{header}")
+    output.write(f"{cyan}原始日志: {log_line}{end}")
+    output.write(f"{cyan}原始值: 0x{reg_value}{end}")
+    output.write(f"{cyan}二进制: {binary_formatted}  (bit 7 -> bit 0){end}")
+    output.write(f"{cyan}        │ │ └─ IDPM_LIM[5:0]{end}")
+    output.write(f"{cyan}        │ └─── ICO_OPTIMIZED{end}")
+    output.write(f"{cyan}        └───── FORCE_ICO{end}")
+    output.write(f"\n{green}各位域含义:{end}")
+    output.write(f"  FORCE_ICO: {result['FORCE_ICO']['description']}")
+    output.write(f"  ICO_OPTIMIZED: {result['ICO_OPTIMIZED']['description']}")
+    output.write(f"  IDPM_LIM[5:0]: {result['IDPM_LIM']['description']}")
+    output.write(f"    二进制值: {result['IDPM_LIM']['binary']}")
+    output.write(f"\n{yellow}注意事项:{end}")
+    output.write("  - FORCE_ICO: 强制启动输入电流优化")
+    output.write("    * 0 = 不强制启动ICO")
+    output.write("    * 1 = 强制启动ICO (ICO启动后自动清零)")
+    output.write("  - ICO_OPTIMIZED: 输入电流优化状态")
+    output.write("    * 0 = 优化进行中")
+    output.write("    * 1 = 已检测到最大输入电流")
+    output.write("  - IDPM_LIM[5:0]: 输入电流限制设置")
+    output.write("    * 偏移值: 100mA")
+    output.write("    * 步进值: 50mA/step")
+    output.write("    * 范围: 100mA (000000) - 3.25A (111111)")
+    output.write("    * 典型值:")
+    output.write("      - 100mA (000000)")
+    output.write("      - 200mA (000010)")
+    output.write("      - 400mA (000110)")
+    output.write("      - 800mA (001110)")
+    output.write("      - 1600mA (011110)")
+
+def display_reg0D_info(reg_value, result, log_line):
+    """显示寄存器0D的解析信息"""
+    output = OutputCapture()
+    display_reg0D_info_to_output(reg_value, result, log_line, output, use_colors=True)
+    print(output.get_content())
+
+def parse_reg0E(value):
+    """解析0x0E寄存器的值
+    
+    位域定义:
+    - VREG[5:0] (bits 7-2): 充电电压设置
+      - 偏移值: 3.856V
+      - 步进值: 根据位值计算
+      - 范围: 3.856V - 4.624V
+    - VREG_FT (bit 1): VREG微调
+      - 0: 禁用(默认)
+      - 1: VREG+8mV
+    - BAT_LOADEN (bit 0): 电池负载使能
+      - 0: 禁用
+      - 1: 使能
+    """
+    value = int(value, 16)
+    result = {}
+    
+    # 解析VREG[5:0]位
+    vreg_bits = (value >> 2) & 0x3F
+    vreg_voltage = 3.856 + (vreg_bits * 0.016)  # 每步16mV
+    if vreg_voltage > 4.624:  # 限制最大值
+        vreg_voltage = 4.624
+    
+    vreg_values = {
+        7: "512mV",
+        6: "256mV",
+        5: "128mV",
+        4: "64mV",
+        3: "32mV",
+        2: "16mV"
+    }
+    
+    for bit, mv_value in vreg_values.items():
+        bit_value = (value >> bit) & 0x01
+        result[f"VREG[{bit}]"] = {
+            "value": bit_value,
+            "description": f"{mv_value} {'设置' if bit_value else '未设置'}"
+        }
+    
+    # 解析VREG_FT位
+    vreg_ft = (value >> 1) & 0x01
+    result["VREG_FT"] = {
+        "value": vreg_ft,
+        "description": "VREG+8mV" if vreg_ft else "禁用(默认)"
+    }
+    
+    # 解析BAT_LOADEN位
+    bat_loaden = value & 0x01
+    result["BAT_LOADEN"] = {
+        "value": bat_loaden,
+        "description": "使能" if bat_loaden else "禁用"
+    }
+    
+    # 添加计算得到的充电电压值
+    result["VREG_TOTAL"] = {
+        "value": vreg_voltage,
+        "description": f"充电电压: {vreg_voltage:.3f}V"
+    }
+    
+    return result
+
+def display_reg0E_info_to_output(reg_value, result, log_line, output, use_colors=True):
+    """将0x0E寄存器信息格式化输出到指定输出对象"""
+    value = int(reg_value, 16)
+    
+    if use_colors:
+        output.write(f"{Colors.HEADER}{log_line}{Colors.END}\n")
+        output.write(f"{Colors.BOLD}寄存器值: 0x{reg_value} (0b{value:08b}){Colors.END}\n")
+    else:
+        output.write(f"{log_line}\n")
+        output.write(f"寄存器值: 0x{reg_value} (0b{value:08b})\n")
+    
+    output.write("\n充电电压设置:\n")
+    for i in range(7, 1, -1):
+        field_name = f"VREG[{i}]"
+        if field_name in result:
+            field = result[field_name]
+            bit_value = field["value"]
+            description = field["description"]
+            
+            if use_colors:
+                color = Colors.GREEN if bit_value else Colors.RED
+                output.write(f"  {field_name}: {color}{bit_value}{Colors.END} - {description}\n")
+            else:
+                output.write(f"  {field_name}: {bit_value} - {description}\n")
+    
+    # 显示VREG_FT设置
+    field = result["VREG_FT"]
+    if use_colors:
+        color = Colors.GREEN if field["value"] else Colors.RED
+        output.write(f"\nVREG微调: {color}{field['value']}{Colors.END} - {field['description']}\n")
+    else:
+        output.write(f"\nVREG微调: {field['value']} - {field['description']}\n")
+    
+    # 显示BAT_LOADEN设置
+    field = result["BAT_LOADEN"]
+    if use_colors:
+        color = Colors.GREEN if field["value"] else Colors.RED
+        output.write(f"\n电池负载: {color}{field['value']}{Colors.END} - {field['description']}\n")
+    else:
+        output.write(f"\n电池负载: {field['value']} - {field['description']}\n")
+    
+    # 显示计算得到的总充电电压
+    field = result["VREG_TOTAL"]
+    if use_colors:
+        output.write(f"\n{Colors.CYAN}{field['description']}{Colors.END}\n")
+    else:
+        output.write(f"\n{field['description']}\n")
+    
+    output.write("\n")
+
+def display_reg0E_info(reg_value, result, log_line):
+    """显示0x0E寄存器信息的便捷函数"""
+    output = OutputCapture()
+    display_reg0E_info_to_output(reg_value, result, log_line, output)
+    print(output.get_content())
+    return output.get_content()
 
 if __name__ == "__main__":
     """主函数入口"""
